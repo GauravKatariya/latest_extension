@@ -1,0 +1,33 @@
+{
+  "name": "ecsclient",
+  "version": "0.0.1",
+  "description": "ECS Client in Typescript",
+  "author": "Brent Erickson <brent.erickson@microsoft.com>",
+  "scripts": {
+    "tslint": "tslint --rules-dir ./node_modules/tslint-microsoft-contrib ./src/**/*.ts",
+    "prepublish": "npm run tslint && tsc",
+    "build": "npm run tslint && tsc"
+  },
+  "dependencies": {
+    "@skype/ecsclient": "^1.0.13",
+    "@types/lodash": "^4.14.64",
+    "requirejs": "^2.3.6",
+    "simplerestclients": "^0.1.6",
+    "subscribableevent": "^1.0.0",
+    "synctasks": "^0.3.2"
+  },
+  "devDependencies": {
+    "typescript": "2.8.3",
+    "tslint": "^5.2.0",
+    "tslint-microsoft-contrib": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://skype.visualstudio.com/DefaultCollection/SCC/_git/client-shared_skypex_ecsclient"
+  },
+  "main": "dist/EcsClient.js",
+  "keywords": [
+    "ECS"
+  ],
+  "types": "dist/EcsClient.d.ts"
+}

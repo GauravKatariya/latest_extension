@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+
+<script type="text/javascript">
+    var appInsights = window.appInsights || function (a) {
+        function b(a) { c[a] = function () { var b = arguments; c.queue.push(function () { c[a].apply(c, b) }) } } var c = { config: a }, d = document, e = window; setTimeout(function () { var b = d.createElement("script"); b.src = a.url || "https://az416426.vo.msecnd.net/scripts/a/ai.0.js", d.getElementsByTagName("script")[0].parentNode.appendChild(b) }); try { c.cookie = d.cookie } catch (a) { } c.queue = []; for (var f = ["Event", "Exception", "Metric", "PageView", "Trace", "Dependency"]; f.length;)b("track" + f.pop()); if (b("setAuthenticatedUserContext"), b("clearAuthenticatedUserContext"), b("startTrackEvent"), b("stopTrackEvent"), b("startTrackPage"), b("stopTrackPage"), b("flush"), !a.disableExceptionTracking) { f = "onerror", b("_" + f); var g = e[f]; e[f] = function (a, b, d, e, h) { var i = g && g(a, b, d, e, h); return !0 !== i && c["_" + f](a, b, d, e, h), i } } return c
+    }({
+        instrumentationKey: "2b12df20-508a-4e67-acb9-74c4bf2efa71",
+        disableAjaxTracking: true
+    });
+
+    window.appInsights = appInsights, appInsights.queue && 0 === appInsights.queue.length && appInsights.trackPageView();
+</script>
+
+<script src="bower_components/vss-web-extension-sdk/lib/VSS.SDK.min.js"></script>
+<script src="scripts/bezier.js"></script>
+<script src="scripts/leader-line.js"></script>
+<script src="scripts/plain-draggable.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js" type="text/javascript"></script>
+
+<script src='scripts/dragula.js'></script>
+<link href='css/dragula.css' rel='stylesheet' type='text/css' />
+<script src="scripts/dependencyJS/bundle.js"></script>
+<link rel="stylesheet" type='text/css' href="css/index.css" />
+
+<head>
+    <meta charset="utf-8">
+    <title>Connected-grid</title>
+    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Office fabric UI -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.4.0/css/fabric.min.css" />
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.4.0/css/fabric.components.min.css" />
+    <script src="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-js/1.4.0/js/fabric.min.js"></script>
+</head>
+
+
+<body id="mainBody">
+    <div class="hub-view">
+        <div class="hub-content">
+            <div class="dependency-tracker-content">
+                <div class="dependency-tracker-content-header">
+                    <button class="ms-Button" id="fullSizeButton" style="margin-left: 10px;margin-top: 10px;">
+                        <span class="ms-Button-label">Summary View</span>
+                    </button>
+                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px" id="teamDropdown">
+                        <select class="ms-Dropdown-select" id="teamDropdownSelect">
+                        </select>
+                    </div>
+                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px" id="sprintStart">
+                        <select class="ms-Dropdown-select" id="sprintStartSelect">
+                        </select>
+                    </div>
+                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px" id="sprintStart">
+                        <select class="ms-Dropdown-select" id="sprintEndSelect">
+                        </select>
+                    </div>
+                </div>
+                <div class="dependency-content">
+                    <div class="dependency-graph-container" id="hideSection">
+                        <div class="graph-wrapper" id="mainTableContainer">
+                        </div>
+                    </div>
+                    <div class="dependency-grid" id="teamGraph" style="display:none">
+                    </div>
+                </div>
+                <h2 id="displayNotMessage"></h2>
+            </div>
+        </div>
+</body>
+
+</html>

@@ -1,0 +1,65 @@
+{
+    "manifestVersion": 1.0,
+    "id": "samples-ui",
+    "version": "1.0.625",
+    "name": "UI Contrls (Sample)",
+    "description": "Explore different UI contr7ls, including menus, toolbars, custom controls, and more.",
+    "publisher": "fabrikam",
+    "public": false,
+    "icons": {
+        "default": "images/fabrikam-logo.png"
+    },
+    "categories": [
+        "Build and release",
+        "Code",
+        "Plan and track",
+        "Test"
+    ],
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],
+    "scopes": [
+        "vso.work",
+        "vso.code",
+        "vso.build"  
+    ],
+    "files": [
+        {
+            "path": "images",
+            "addressable": true
+        },
+        {
+            "path": "bower_components/vss-web-extension-sdk/lib/VSS.SDK.min.js",
+            "addressable": true
+        },
+        {
+            "path": "index.html",
+            "addressable": true
+        },
+        {
+            "path": "scripts",
+            "addressable": true
+        },
+        {
+            "path": "css",
+            "addressable": true
+        }
+    ],
+    "contributions": [
+        {
+            "id": "simple-menu-hub",
+            "type": "ms.vss-web.hub",
+            "description": "Adds a 'Simple' hub to the 'Sample UI' hub group to show basic usage of the menu control.",
+            "targets": [
+                "ms.vss-work-web.work-hub-group"
+            ],
+            "properties": {
+                "name": "Dependency-Tracker",
+                "order": 100,
+                "uri": "index.html"
+            }
+        }
+    ]
+}
