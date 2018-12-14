@@ -28,20 +28,28 @@ var DataExtract = {
         });
     },
 
-    getTeamIterations()
+    getTeamIterations(teamId)
     {
         return new Promise((resolve, reject) => {
             VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
                 var teamContext = {
                     projectId: global.projectId,
-                    teamId: context.team.name,
+                    teamId: teamId,
                 };
                 //create work client
                 var client = WorkRestClient.getClient();
 
+                var sprintsArray = []
                 //query the area paths
                 client.getTeamIterations(teamContext).then((settings) => {
-                    resolve(settings);
+                    settings.forEach(element => {
+                        debugger;
+                        if(element.timeFrame == "current")
+                            global.currentSprint = sprintsArray.length; 
+                            
+                        sprintsArray = sprintsArray.concat(element.name);
+                    });
+                    resolve(sprintsArray);
                 });
             });
         });
@@ -116,7 +124,7 @@ var DataFilter = {
                     "Title": "[Waiting to create work item]",
                     "Id": element.Id + "0",
                     "AreaPath": "Dummy_iteration_path\\"+ ((element.Title.split("]"))[1]).substring(1),
-                    "IterationPath": "1811-1",
+                    "IterationPath": global.sprintIterations[global.startSprint],
                     "DependentOn": [],
                     "DependentBy": [parseInt(element.Id)],
                     "WorkItemType": "DummyItem",
@@ -198,16 +206,29 @@ var Events = {
             $('#fullSizeButton').children().html("Summary view")
         }
     },
-    addDropdownItems(list) {
+    addDropdownItems(list , htmlId1 , htmlId2) {
         global.teamsList = list;
         list.forEach(element => {
-            var x = document.getElementById("teamDropdownSelect");
+            var x = document.getElementById(htmlId1);
             var option = document.createElement("option");
             option.text = element.name;
             option.value = element.name;
             x.add(option);
         });
-        var DropdownHTMLElements = document.querySelectorAll('#teamDropdown');
+        var DropdownHTMLElements = document.querySelectorAll(htmlId2);
+        for (var i = 0; i < DropdownHTMLElements.length; ++i) {
+            var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
+        }
+    },
+    addIterationDropdownItems(list , htmlId1 , html2) {
+        list.forEach(element => {
+            var x = document.getElementById(htmlId1);
+            var option = document.createElement("option");
+            option.text = element;
+            option.value = element;
+            x.add(option);
+        });
+        var DropdownHTMLElements = document.querySelectorAll(html2);
         for (var i = 0; i < DropdownHTMLElements.length; ++i) {
             var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
         }
@@ -341,6 +362,10 @@ global.vstsHostURL;
 global.projectName = "Integration Demo Project\\";
 global.ecsClientFilter;
 global.teamsList;
+global.sprintIterations;
+global.currentSprint;
+global.startSprint;
+global.endSprint;
 
 function teamWiseDependencyRender() {
 
@@ -415,14 +440,8 @@ window.addEventListener('load', function () {
         global.vstsHostURL = context.host.uri;
         global.projectId = context.project.id;
         VSS.notifyLoadSucceeded();
-        
-    });
 
-    debugger;
-    var x = DataExtract.getTeamIterations();
-    x.then((data) => {
-        console.log(data);
-    })
+    });
 
     VSS.require(["VSS/Service", "TFS/WorkItemTracking/RestClient", "TFS/WorkItemTracking/Contracts", "TFS/Core/RestClient"], function (VSS_Service, TFS_Wit_WebApi, Contracts, Tfs_Core_WebApi) {
         // Get the REST client
@@ -464,8 +483,18 @@ window.addEventListener('load', function () {
                 // can be refactored
                 var teamList = ecsClientFilter.DependencyTracker.Teams;
                 if (teamList.includes(team) || teamList.includes("*")) {
-                    teamId = teamsList.find(x=> x.name == team);
-                    RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
+                    teamId = teamsList.find(x=> x.name == team)
+                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
+                    sprintsPromise.then(function (sprints)
+                    {
+                        global.sprintIterations = sprints;
+                        Events.addIterationDropdownItems(sprints,"sprintStartSelect" , "#sprintStart");
+                        Events.addIterationDropdownItems(sprints,"sprintEndSelect" , "#sprintEnd");
+
+                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = global.sprintIterations[0];
+                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations[global.sprintIterations-1];
+                        RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
+                    });
                 }
                 else {
                     document.getElementById("displayNotMessage").innerHTML = "This feature is not supported for selected team!"
@@ -477,7 +506,8 @@ window.addEventListener('load', function () {
         async function initializeTeamDropDown() {
             debugger;
             var teamLists = await DataExtract.getTeamNames(clientTeam);
-            Events.addDropdownItems(teamLists);
+            //var sprintList = await DataExtract.getTeamIterations();
+            Events.addDropdownItems(teamLists,"teamDropdownSelect" , "#teamDropdown");
         }
 
         async function helper(team) {
@@ -520,6 +550,7 @@ window.addEventListener('load', function () {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../dependencyJS/dataExtract":1,"../dependencyJS/dataFilter":2,"../dependencyJS/ecsClients":3,"../dependencyJS/events":4,"../dependencyJS/line":5,"../dependencyJS/render":7,"../dependencyJS/summaryView":8}],7:[function(require,module,exports){
+(function (global){
 var DataExtract = require("../dependencyJS/dataExtract")
 var DataFilter = require("../dependencyJS/dataFilter")
 var Line = require("../dependencyJS/line")
@@ -532,7 +563,14 @@ var RenderElement = {
     },
 
     loadTable(htmlTagId, workItemsWithDependency) {
-        var table = "<table class='ms-Table' id='mainTable'><thead><th><b>Team</b></th><th><b>1811-1</b></th><th><b>1811-2</b></th><th><b>1812-1</b></th><th><b>1812-2</b></th><th><b>1901-1</b></th></thead><tbody>"
+        
+        var table = "<table class='ms-Table' id='mainTable'><thead><th><b>Team</b></th>";
+        for(var i = global.startSprint; i <= global.endSprint;i++)
+        {
+            table += "<th><b>"+global.sprintIterations[i]+"</b></th>";
+        }
+        table += "</thead><tbody>"
+        
         table = table + this.renderTableItems(workItemsWithDependency) + "</tbody></table>"
         $(htmlTagId).append(table);
 
@@ -560,7 +598,7 @@ var RenderElement = {
     },
 
     renderIterationWorkItems(teamWorkItems) {
-        let iterations = ["1811-1", "1811-2", "1812-1", "1812-2", "1901-1"];
+        let iterations = global.sprintIterations.slice(global.startSprint , global.endSprint+1);
         let iterationWorkItems = iterations.map(iteration => ({ iteration, workItems: teamWorkItems.filter(wi => wi.IterationPath.includes(iteration)) }));
         var cells = ""
 
@@ -603,8 +641,9 @@ var RenderElement = {
         return "<div id='" + id + "' class='board-tile-content-container' style='border-left: solid 5px " + colour + " '><div class='board-tile-content'><span style='display: inline-block;margin-right: 3px;'><div class='ms-TooltipHost host_931d1596 work-item-type-icon-wrapper'><i aria-label='User Story' class='work-item-type-icon bowtie-icon bowtie-symbol-task' style='color: " + colour + "'></i></div></span><div class='title-ellipsis'><div class='title-ellipsis'><a href='" + url + "' target='_blank'><span class='clickable-title' role='button'>" + title + "</span></a></div></div></div></div>"
     },
 
-    async fetchItems(witClient, client, Contracts, teamName, teamID) {
-        var areaPath = await DataExtract.getTeamAreaPath(teamName, teamID);
+    async fetchItems(witClient, client, Contracts,teamID) {
+        var areaPath = await DataExtract.getTeamAreaPath(teamID);
+
         var workItemsobj = await this.getAllteamDependentItems(witClient, client, Contracts, areaPath);
         var workItemsWithDummy = DataFilter.getWorkItemsWithDummy(workItemsobj, areaPath)
 
@@ -646,12 +685,12 @@ var RenderElement = {
     }
 }
 module.exports = RenderElement
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{"../dependencyJS/dataExtract":1,"../dependencyJS/dataFilter":2,"../dependencyJS/line":5,"../dependencyJS/render":7,"../dependencyJS/summaryView":8}],8:[function(require,module,exports){
 var DataFilter = require("../dependencyJS/dataFilter")
 var SummaryView = {
     createTable(workItemsWithDependency, areaPath) {
 
-        
         var allTableString = this.createConsumingTable(workItemsWithDependency , areaPath);
         allTableString += this.createProducingTable(workItemsWithDependency , areaPath);
        // allTableString += this.createDummyTable(workItemsWithDependency);

@@ -2,7 +2,6 @@ var DataFilter = require("../dependencyJS/dataFilter")
 var SummaryView = {
     createTable(workItemsWithDependency, areaPath) {
 
-        
         var allTableString = this.createConsumingTable(workItemsWithDependency , areaPath);
         allTableString += this.createProducingTable(workItemsWithDependency , areaPath);
        // allTableString += this.createDummyTable(workItemsWithDependency);

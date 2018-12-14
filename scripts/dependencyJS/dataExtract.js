@@ -26,20 +26,28 @@ var DataExtract = {
         });
     },
 
-    getTeamIterations()
+    getTeamIterations(teamId)
     {
         return new Promise((resolve, reject) => {
             VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
                 var teamContext = {
                     projectId: global.projectId,
-                    teamId: context.team.name,
+                    teamId: teamId,
                 };
                 //create work client
                 var client = WorkRestClient.getClient();
 
+                var sprintsArray = []
                 //query the area paths
                 client.getTeamIterations(teamContext).then((settings) => {
-                    resolve(settings);
+                    settings.forEach(element => {
+                        debugger;
+                        if(element.timeFrame == "current")
+                            global.currentSprint = sprintsArray.length; 
+                            
+                        sprintsArray = sprintsArray.concat(element.name);
+                    });
+                    resolve(sprintsArray);
                 });
             });
         });

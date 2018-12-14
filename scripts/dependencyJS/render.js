@@ -10,7 +10,14 @@ var RenderElement = {
     },
 
     loadTable(htmlTagId, workItemsWithDependency) {
-        var table = "<table class='ms-Table' id='mainTable'><thead><th><b>Team</b></th><th><b>1811-1</b></th><th><b>1811-2</b></th><th><b>1812-1</b></th><th><b>1812-2</b></th><th><b>1901-1</b></th></thead><tbody>"
+        
+        var table = "<table class='ms-Table' id='mainTable'><thead><th><b>Team</b></th>";
+        for(var i = global.startSprint; i <= global.endSprint;i++)
+        {
+            table += "<th><b>"+global.sprintIterations[i]+"</b></th>";
+        }
+        table += "</thead><tbody>"
+        
         table = table + this.renderTableItems(workItemsWithDependency) + "</tbody></table>"
         $(htmlTagId).append(table);
 
@@ -38,7 +45,7 @@ var RenderElement = {
     },
 
     renderIterationWorkItems(teamWorkItems) {
-        let iterations = ["1811-1", "1811-2", "1812-1", "1812-2", "1901-1"];
+        let iterations = global.sprintIterations.slice(global.startSprint , global.endSprint+1);
         let iterationWorkItems = iterations.map(iteration => ({ iteration, workItems: teamWorkItems.filter(wi => wi.IterationPath.includes(iteration)) }));
         var cells = ""
 

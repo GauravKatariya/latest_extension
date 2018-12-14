@@ -23,7 +23,7 @@ var DataFilter = {
                     "Title": "[Waiting to create work item]",
                     "Id": element.Id + "0",
                     "AreaPath": "Dummy_iteration_path\\"+ ((element.Title.split("]"))[1]).substring(1),
-                    "IterationPath": "1811-1",
+                    "IterationPath": global.sprintIterations[global.startSprint],
                     "DependentOn": [],
                     "DependentBy": [parseInt(element.Id)],
                     "WorkItemType": "DummyItem",

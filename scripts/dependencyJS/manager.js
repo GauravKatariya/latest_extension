@@ -21,6 +21,10 @@ global.vstsHostURL;
 global.projectName = "Integration Demo Project\\";
 global.ecsClientFilter;
 global.teamsList;
+global.sprintIterations;
+global.currentSprint;
+global.startSprint;
+global.endSprint;
 
 function teamWiseDependencyRender() {
 
@@ -95,14 +99,8 @@ window.addEventListener('load', function () {
         global.vstsHostURL = context.host.uri;
         global.projectId = context.project.id;
         VSS.notifyLoadSucceeded();
-        
-    });
 
-    debugger;
-    var x = DataExtract.getTeamIterations();
-    x.then((data) => {
-        console.log(data);
-    })
+    });
 
     VSS.require(["VSS/Service", "TFS/WorkItemTracking/RestClient", "TFS/WorkItemTracking/Contracts", "TFS/Core/RestClient"], function (VSS_Service, TFS_Wit_WebApi, Contracts, Tfs_Core_WebApi) {
         // Get the REST client
@@ -144,8 +142,18 @@ window.addEventListener('load', function () {
                 // can be refactored
                 var teamList = ecsClientFilter.DependencyTracker.Teams;
                 if (teamList.includes(team) || teamList.includes("*")) {
-                    teamId = teamsList.find(x=> x.name == team);
-                    RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
+                    teamId = teamsList.find(x=> x.name == team)
+                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
+                    sprintsPromise.then(function (sprints)
+                    {
+                        global.sprintIterations = sprints;
+                        Events.addIterationDropdownItems(sprints,"sprintStartSelect" , "#sprintStart");
+                        Events.addIterationDropdownItems(sprints,"sprintEndSelect" , "#sprintEnd");
+
+                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = global.sprintIterations[0];
+                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations[global.sprintIterations-1];
+                        RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
+                    });
                 }
                 else {
                     document.getElementById("displayNotMessage").innerHTML = "This feature is not supported for selected team!"
@@ -157,7 +165,8 @@ window.addEventListener('load', function () {
         async function initializeTeamDropDown() {
             debugger;
             var teamLists = await DataExtract.getTeamNames(clientTeam);
-            Events.addDropdownItems(teamLists);
+            //var sprintList = await DataExtract.getTeamIterations();
+            Events.addDropdownItems(teamLists,"teamDropdownSelect" , "#teamDropdown");
         }
 
         async function helper(team) {
