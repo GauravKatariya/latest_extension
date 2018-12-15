@@ -9,6 +9,24 @@ var DataExtract = {
         };
     },
 
+    // wiql for team specific item fetch
+    getwiql1(areaPath) {
+
+        var iterationPathString = "(";
+        var commaString = "";
+        for (var i = global.startSprint; i <= global.endSprint; i++) {
+            iterationPathString = iterationPathString + commaString + "'" + commonIterationPath + sprintIterations[i] + "'";
+            commaString = ",";
+        }
+        iterationPathString += ") )";
+
+        var wiqlWhereClauses = ["([System.AreaPath] = '" + areaPath + "' AND [System.IterationPath] IN " + iterationPathString]
+        return {
+            wiql: "SELECT [System.Id], \n [System.IterationPath], \n [System.TeamProject], \n [System.WorkItemType], \n [System.AssignedTo], \n [System.Title]\n FROM WorkItems\n WHERE " + wiqlWhereClauses
+        }
+    },
+
+    //not being used anywhere 
     getTeamAreaPath(teamId) {
         return new Promise((resolve, reject) => {
             VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
@@ -28,8 +46,7 @@ var DataExtract = {
         });
     },
 
-    getTeamIterations(teamId)
-    {
+    getTeamIterations(teamId) {
         return new Promise((resolve, reject) => {
             VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
                 var teamContext = {
@@ -40,33 +57,54 @@ var DataExtract = {
                 var client = WorkRestClient.getClient();
 
                 var sprintsArray = []
+                var fullIterationPath;
                 //query the area paths
                 client.getTeamIterations(teamContext).then((settings) => {
                     settings.forEach(element => {
-                        debugger;
-                        if(element.timeFrame == "current")
-                            global.currentSprint = sprintsArray.length; 
-                            
+                        if (element.attributes.timeFrame == "current" || element.attributes.timeFrame == 1)
+                            global.currentSprint = sprintsArray.length;
+                        fullIterationPath = element.path;
                         sprintsArray = sprintsArray.concat(element.name);
                     });
-                    resolve(sprintsArray);
-                });
-            });
-        });
-    },
-    async getWorkItems(witClient, client, contracts , areaPath) {
-        var wiqlResult = { "query": this.getwiql(areaPath).wiql }
-        var queryResult = await witClient.queryByWiql(wiqlResult, VSS.getWebContext().project.id)
 
-        if (queryResult.workItems.length > 0) {
-            var workItems = await client.getWorkItems(queryResult.workItems.map(function (wi) { return wi.id; }), null, null, contracts.WorkItemExpand.Relations)
-            return workItems;
+                    var splitIterationPath = fullIterationPath.split("\\");
+                    fullIterationPath = ""
+                    for (var i = 0; i < splitIterationPath.length - 1; i++) {
+                        fullIterationPath += splitIterationPath[i] + "\\";
+                    }
+
+                    global.commonIterationPath = fullIterationPath;
+                    resolve(sprintsArray);
+                }).catch(function (error) {
+                    window.appInsights.trackException({ "exception": "Failed to get team iterations of team :- " + teamId, "innerException": error })
+                    reject(error)
+                })
+            })
+        })
+    },
+    async getWorkItems(witClient, client, contracts, areaPath) {
+        try {
+            var wiqlResult = { "query": this.getwiql1(areaPath).wiql }
+            var queryResult = await witClient.queryByWiql(wiqlResult, VSS.getWebContext().project.id)
+
+            if (queryResult.workItems.length > 0) {
+                var workItems = await client.getWorkItems(queryResult.workItems.map(function (wi) { return wi.id; }), null, null, contracts.WorkItemExpand.Relations)
+                return workItems;
+            }
+        }
+        catch (error) {
+            window.appInsights.trackException({ "exception": "Failed to get work items of team :- " + areaPath, "innerException": error })
         }
     },
 
     async getWorkItemsWithID(workItemsID) {
-        var workItems = await client.getWorkItems(workItemsID, null, null, contracts.WorkItemExpand.Relations)
-        return workItems;
+        try {
+            var workItems = await client.getWorkItems(workItemsID, null, null, contracts.WorkItemExpand.Relations)
+            return workItems;
+        }
+        catch (error) {
+            window.appInsights.trackException({ "exception": "Failed to get workitems :- " + workItemsID, "innerException": error })
+        }
     },
 
     async getTeamNames(client) {
@@ -75,23 +113,30 @@ var DataExtract = {
         var currentSkip = 0;
         var batchSize = 50;
         var teamLists = []
-        while (true) {
-            teams = await client.getTeams(global.projectId, batchSize, currentSkip)
-            // Check if data returned from API is empty
-            if (teams == undefined || teams.length == 0) {
+
+        try {
+            while (true) {
+                teams = await client.getTeams(global.projectId, batchSize, currentSkip)
+                // Check if data returned from API is empty
+                if (teams == undefined || teams.length == 0) {
+                    countAPIResponse = countAPIResponse + 1;
+                    return;
+                }
+                teamLists = teamLists.concat(teams);
                 countAPIResponse = countAPIResponse + 1;
-                return;
-            }
-            teamLists = teamLists.concat(teams);
-            countAPIResponse = countAPIResponse + 1;
 
-            currentSkip += batchSize;
-            if (currentSkip >= maxTeamCount) {
-                break;
+                currentSkip += batchSize;
+                if (currentSkip >= maxTeamCount) {
+                    break;
+                }
             }
+
+            return teamLists;
         }
-
-        return teamLists;
+        catch (error) {
+            window.appInsights.trackException({ "exception": "Failed to get Team names from vsts", "innerException": error })
+            return undefined;
+        }
     }
 }
 
@@ -123,8 +168,8 @@ var DataFilter = {
                 {
                     "Title": "[Waiting to create work item]",
                     "Id": element.Id + "0",
-                    "AreaPath": "Dummy_iteration_path\\"+ ((element.Title.split("]"))[1]).substring(1),
-                    "IterationPath": global.sprintIterations[global.startSprint],
+                    "AreaPath": "Dummy_Area_path\\"+ ((element.Title.split("]"))[1]).substring(1),
+                    "IterationPath": "Dummy_iteration_path\\"+ global.sprintIterations[global.startSprint],
                     "DependentOn": [],
                     "DependentBy": [parseInt(element.Id)],
                     "WorkItemType": "DummyItem",
@@ -185,11 +230,49 @@ var EcsClients = {
 module.exports = EcsClients
 },{}],4:[function(require,module,exports){
 (function (global){
+var Line = require("../dependencyJS/line")
 var Events = {
     reRenderOnScroll() {
         for (key in dict) {
             dict[key].forEach(element => {
                 element["line"].position();
+            })
+        }
+    },
+    showErrorMessage() {
+        Events.clearScreen();
+        Events.clearLines();
+        Events.reInitializeSprintDropdown();
+        document.getElementById("displayNotMessage").innerHTML = "Something went wrong!!"
+    },
+    clearScreen() {
+        document.getElementById("displayNotMessage").innerHTML = "";
+        document.getElementById("mainTableContainer").innerHTML = "";
+        document.getElementById("teamGraph").innerHTML = "";
+    },
+    enableButton() {
+        document.getElementById("fullSizeButton").style.display = "block"
+        document.getElementById("goButton").style.display = "block"
+    },
+    disableButton() {
+        document.getElementById("fullSizeButton").style.display = "none"
+        document.getElementById("goButton").style.display = "none"
+    },
+    reInitializeSprintDropdown() {
+        $('#sprintStart span').remove('.ms-Dropdown-title');
+        $("#sprintStart ul").remove(".ms-Dropdown-items");
+        document.getElementById("sprintStartSelect").innerHTML = "";
+
+        document.getElementById("sprintEndSelect").innerHTML = "";
+        $('#sprintEnd span').remove('.ms-Dropdown-title');
+        $("#sprintEnd ul").remove(".ms-Dropdown-items");
+
+    },
+    clearLines() {
+        for (key in dict) {
+            dict[key].forEach(element => {
+                var key2 = parseInt(element.id.split("-")[1])
+                Line.removeLine(parseInt(key), key2);
             })
         }
     },
@@ -206,7 +289,7 @@ var Events = {
             $('#fullSizeButton').children().html("Summary view")
         }
     },
-    addDropdownItems(list , htmlId1 , htmlId2) {
+    addDropdownItems(list, htmlId1, htmlId2) {
         global.teamsList = list;
         list.forEach(element => {
             var x = document.getElementById(htmlId1);
@@ -220,7 +303,7 @@ var Events = {
             var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
         }
     },
-    addIterationDropdownItems(list , htmlId1 , html2) {
+    addIterationDropdownItems(list, htmlId1, html2) {
         list.forEach(element => {
             var x = document.getElementById(htmlId1);
             var option = document.createElement("option");
@@ -237,7 +320,7 @@ var Events = {
 
 module.exports = Events
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],5:[function(require,module,exports){
+},{"../dependencyJS/line":5}],5:[function(require,module,exports){
 var DataFilter = require("../dependencyJS/dataFilter")
 
 var Line = {
@@ -253,11 +336,11 @@ var Line = {
     },
 
     removeLine(key1, key2) {
-        var lineElement1 = findElement(key1, key1 + "-" + key2)
-        var lineElement2 = findElement(key2, key2 + "-" + key1)
-        removeLineObject(lineElement1)
-        deleteElement(key1, lineElement1)
-        deleteElement(key2, lineElement2)
+        var lineElement1 = this.findElement(key1, key1 + "-" + key2)
+        var lineElement2 = this.findElement(key2, key2 + "-" + key1)
+        this.removeLineObject(lineElement1.line)
+        this.deleteElement(key1, lineElement1)
+        this.deleteElement(key2, lineElement2)
     },
 
     findElement(key, value) {
@@ -271,40 +354,49 @@ var Line = {
     },
 
     drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi) {
-        var colorCode;
+        try {
+            var colorCode;
 
-        if (title_dwi.includes("[Waiting to create work item]")) {
-            colorCode = '#D7003C';
-        }
-        else if (sprint_wi == sprint_dwi) {
-            colorCode = '#f8b47a';
-        }
-        else if (sprint_dwi > sprint_wi) {
-            colorCode = '#D7003C';
-        }
-        else {
-            colorCode = '#00D5AC';
-        }
+            if (title_dwi.includes("[Waiting to create work item]")) {
+                colorCode = '#D7003C';
+            }
+            else if (sprint_wi == sprint_dwi) {
+                colorCode = '#f8b47a';
+            }
+            else if (sprint_dwi > sprint_wi) {
+                colorCode = '#D7003C';
+            }
+            else {
+                colorCode = '#00D5AC';
+            }
 
-        line = new LeaderLine(source, destination,
-            { startPlug: 'disc', color: colorCode });
-        var key = key1 + "-" + key2
-        dict[key1].push({ "id": key, "line": line })
-        key = key2 + "-" + key1
-        dict[key2].push({ "id": key, "line": line })
-        allLines.push(line);
+            line = new LeaderLine(source, destination,
+                { startPlug: 'disc', color: colorCode });
+            var key = key1 + "-" + key2
+            dict[key1].push({ "id": key, "line": line })
+            key = key2 + "-" + key1
+            dict[key2].push({ "id": key, "line": line })
+            allLines.push(line);
+        }
+        catch(err){
+            console.log(source + " failed");
+        }
     },
     createLines(workItemsWithDependency, areaPath) {
         var workItemsWithDependencyteamwise = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath)
         workItemsWithDependencyteamwise.forEach(wi => {
-            var sprint_wi = (wi["IterationPath"]).replace("Integration Demo Project\\Sprint", "");
+            var sprintPathArray = wi["IterationPath"].split("\\")
+            var sprint_wi;
+            sprintPathArray.length == 0 ? sprint_wi = wi["IterationPath"] : sprint_wi = sprintPathArray[sprintPathArray.length - 1];
             sprint_wi = (sprint_wi).replace("-", "");
             sprint_wi = parseInt(sprint_wi)
 
             if (wi.DependentOn != undefined && wi.DependentOn.length > 0) {
                 wi.DependentOn.forEach(dwi => {
-
-                    var sprint_dwi = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"].replace("Integration Demo Project\\Sprint", "");
+                    var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
+                    var dwi_sprintPathArray = dwi_sprintPath.split("\\");
+                    var sprint_dwi;
+                    dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
                     var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
                     sprint_dwi = (sprint_dwi).replace("-", "");
                     sprint_dwi = parseInt(sprint_dwi)
@@ -318,8 +410,10 @@ var Line = {
             }
             if (wi.DependentBy != undefined && wi.DependentBy.length > 0) {
                 wi.DependentBy.forEach(dwi => {
-
-                    var sprint_dwi = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"].replace("Integration Demo Project\\Sprint", "");
+                    var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
+                    var dwi_sprintPathArray = dwi_sprintPath.split("\\");
+                    var sprint_dwi;
+                    dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
                     var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
                     sprint_dwi = (sprint_dwi).replace("-", "");
                     sprint_dwi = parseInt(sprint_dwi)
@@ -359,14 +453,14 @@ global.drake;
 global.allLines = [];
 global.projectId;
 global.vstsHostURL;
-global.projectName = "Integration Demo Project\\";
 global.ecsClientFilter;
 global.teamsList;
 global.sprintIterations;
 global.currentSprint;
 global.startSprint;
 global.endSprint;
-
+global.selectedTeamId;
+global.commonIterationPath;
 function teamWiseDependencyRender() {
 
     var workItemsWithDependency = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDummy);
@@ -474,43 +568,59 @@ window.addEventListener('load', function () {
             })
 
         $('#teamDropdownSelect').change(function () {
-            debugger;
-            var team =  this.value;
-            var getteamPromise = helper(team);
+            var team = this.value;
+            var getteamPromise = httpGetToECS(team);
             getteamPromise.then(function (data) {
                 ecsClientFilter = JSON.parse(data);
-                document.getElementById("displayNotMessage").innerHTML = "";
-                // can be refactored
                 var teamList = ecsClientFilter.DependencyTracker.Teams;
-                if (teamList.includes(team) || teamList.includes("*")) {
-                    teamId = teamsList.find(x=> x.name == team)
-                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
-                    sprintsPromise.then(function (sprints)
-                    {
-                        global.sprintIterations = sprints;
-                        Events.addIterationDropdownItems(sprints,"sprintStartSelect" , "#sprintStart");
-                        Events.addIterationDropdownItems(sprints,"sprintEndSelect" , "#sprintEnd");
 
-                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = global.sprintIterations[0];
-                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations[global.sprintIterations-1];
-                        RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
-                    });
+                // restting the view 
+                Events.clearScreen();
+                Events.clearLines();
+                Events.reInitializeSprintDropdown();
+
+                if (teamList.includes(team) || teamList.includes("*")) {
+                    teamId = teamsList.find(x => x.name == team)
+                    global.selectedTeamId = teamId.id;
+                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
+
+                    sprintsPromise.then(function (sprints) {
+                        global.sprintIterations = sprints;
+                        Events.addIterationDropdownItems(sprints, "sprintStartSelect", "#sprintStart");
+                        Events.addIterationDropdownItems(sprints, "sprintEndSelect", "#sprintEnd");
+
+                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = 0;
+                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations.length - 1;
+                        RenderElement.fetchItems(witClient, client, contracts, teamId.id);
+                        Events.enableButton();
+                    }).catch(function (error) {
+                        Events.showErrorMessage();
+                        Events.disableButton();
+                    })
                 }
                 else {
+                    Events.disableButton();
+                    window.appInsights.trackEvent("Team tried accessing :- " + team)
                     document.getElementById("displayNotMessage").innerHTML = "This feature is not supported for selected team!"
                 }
+            }).catch(function (error) {
+                window.appInsights.trackException({ "exception": "Failed to get ECS config", "innerException": error })
+                Events.showErrorMessage()
             })
         });
 
         initializeTeamDropDown();
         async function initializeTeamDropDown() {
-            debugger;
             var teamLists = await DataExtract.getTeamNames(clientTeam);
-            //var sprintList = await DataExtract.getTeamIterations();
-            Events.addDropdownItems(teamLists,"teamDropdownSelect" , "#teamDropdown");
+
+            if (teamLists != undefined) {
+                Events.addDropdownItems(teamLists, "teamDropdownSelect", "#teamDropdown");
+            } else {
+                Events.showErrorMessage();
+            }
         }
 
-        async function helper(team) {
+        async function httpGetToECS(team) {
             var url = "https://b.config.skype.net/config/v1/CSE-Teams/1.0.0.0/INT-PLT-EIP-DependencyTracker?Environment=DependencyTracker"
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
@@ -544,6 +654,15 @@ window.addEventListener('load', function () {
             $('#fullSizeButton').children().html("Summary view")
         }
 
+    });
+
+    $("#goButton").on("click", function () {
+        Events.clearScreen();
+        Events.clearLines();
+        global.startSprint = global.sprintIterations.indexOf($('#sprintStartSelect').val())
+        global.endSprint = global.sprintIterations.indexOf($('#sprintEndSelect').val())
+
+        RenderElement.fetchItems(witClient, client, contracts, global.selectedTeamId);
     });
 
 });

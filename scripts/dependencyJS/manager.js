@@ -18,14 +18,14 @@ global.drake;
 global.allLines = [];
 global.projectId;
 global.vstsHostURL;
-global.projectName = "Integration Demo Project\\";
 global.ecsClientFilter;
 global.teamsList;
 global.sprintIterations;
 global.currentSprint;
 global.startSprint;
 global.endSprint;
-
+global.selectedTeamId;
+global.commonIterationPath;
 function teamWiseDependencyRender() {
 
     var workItemsWithDependency = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDummy);
@@ -133,43 +133,59 @@ window.addEventListener('load', function () {
             })
 
         $('#teamDropdownSelect').change(function () {
-            debugger;
-            var team =  this.value;
-            var getteamPromise = helper(team);
+            var team = this.value;
+            var getteamPromise = httpGetToECS(team);
             getteamPromise.then(function (data) {
                 ecsClientFilter = JSON.parse(data);
-                document.getElementById("displayNotMessage").innerHTML = "";
-                // can be refactored
                 var teamList = ecsClientFilter.DependencyTracker.Teams;
-                if (teamList.includes(team) || teamList.includes("*")) {
-                    teamId = teamsList.find(x=> x.name == team)
-                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
-                    sprintsPromise.then(function (sprints)
-                    {
-                        global.sprintIterations = sprints;
-                        Events.addIterationDropdownItems(sprints,"sprintStartSelect" , "#sprintStart");
-                        Events.addIterationDropdownItems(sprints,"sprintEndSelect" , "#sprintEnd");
 
-                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = global.sprintIterations[0];
-                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations[global.sprintIterations-1];
-                        RenderElement.fetchItems(witClient, client, contracts, team, teamId.id);
-                    });
+                // restting the view 
+                Events.clearScreen();
+                Events.clearLines();
+                Events.reInitializeSprintDropdown();
+
+                if (teamList.includes(team) || teamList.includes("*")) {
+                    teamId = teamsList.find(x => x.name == team)
+                    global.selectedTeamId = teamId.id;
+                    var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
+
+                    sprintsPromise.then(function (sprints) {
+                        global.sprintIterations = sprints;
+                        Events.addIterationDropdownItems(sprints, "sprintStartSelect", "#sprintStart");
+                        Events.addIterationDropdownItems(sprints, "sprintEndSelect", "#sprintEnd");
+
+                        global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = 0;
+                        global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations.length - 1;
+                        RenderElement.fetchItems(witClient, client, contracts, teamId.id);
+                        Events.enableButton();
+                    }).catch(function (error) {
+                        Events.showErrorMessage();
+                        Events.disableButton();
+                    })
                 }
                 else {
+                    Events.disableButton();
+                    window.appInsights.trackEvent("Team tried accessing :- " + team)
                     document.getElementById("displayNotMessage").innerHTML = "This feature is not supported for selected team!"
                 }
+            }).catch(function (error) {
+                window.appInsights.trackException({ "exception": "Failed to get ECS config", "innerException": error })
+                Events.showErrorMessage()
             })
         });
 
         initializeTeamDropDown();
         async function initializeTeamDropDown() {
-            debugger;
             var teamLists = await DataExtract.getTeamNames(clientTeam);
-            //var sprintList = await DataExtract.getTeamIterations();
-            Events.addDropdownItems(teamLists,"teamDropdownSelect" , "#teamDropdown");
+
+            if (teamLists != undefined) {
+                Events.addDropdownItems(teamLists, "teamDropdownSelect", "#teamDropdown");
+            } else {
+                Events.showErrorMessage();
+            }
         }
 
-        async function helper(team) {
+        async function httpGetToECS(team) {
             var url = "https://b.config.skype.net/config/v1/CSE-Teams/1.0.0.0/INT-PLT-EIP-DependencyTracker?Environment=DependencyTracker"
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
@@ -203,6 +219,15 @@ window.addEventListener('load', function () {
             $('#fullSizeButton').children().html("Summary view")
         }
 
+    });
+
+    $("#goButton").on("click", function () {
+        Events.clearScreen();
+        Events.clearLines();
+        global.startSprint = global.sprintIterations.indexOf($('#sprintStartSelect').val())
+        global.endSprint = global.sprintIterations.indexOf($('#sprintEndSelect').val())
+
+        RenderElement.fetchItems(witClient, client, contracts, global.selectedTeamId);
     });
 
 });
