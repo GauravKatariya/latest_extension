@@ -29,7 +29,7 @@ var SummaryView = {
                     separate = " , "
                 })
 
-                tableString = tableString + "<td><a class='ms-Link' href='" + element.url + "' target='_blank'>" + element.Title + "</a></td><td>" + producerTeamNames + "</td>";
+                tableString = tableString + "<td style=\"width:700px\"><a class='ms-Link' href='" + element.url + "' target='_blank'>" + element.Title + "</a></td><td>" + producerTeamNames + "</td>";
                 tableString = tableString + "</tr>"
             }
         });

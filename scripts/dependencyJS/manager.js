@@ -25,9 +25,9 @@ global.currentSprint;
 global.startSprint;
 global.endSprint;
 global.selectedTeamId;
-global.commonIterationPath;
-function teamWiseDependencyRender() {
+global.sprintIterationsPath
 
+function teamWiseDependencyRender() {
     var workItemsWithDependency = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDummy);
     var workItemsDependentOn = [];
     for (var i = 0; i < workItemsWithDependency.length; i++) {
@@ -134,6 +134,9 @@ window.addEventListener('load', function () {
 
         $('#teamDropdownSelect').change(function () {
             var team = this.value;
+
+            if(team == "Select Team")
+                return
             var getteamPromise = httpGetToECS(team);
             getteamPromise.then(function (data) {
                 ecsClientFilter = JSON.parse(data);
@@ -150,12 +153,14 @@ window.addEventListener('load', function () {
                     var sprintsPromise = DataExtract.getTeamIterations(teamId.id);
 
                     sprintsPromise.then(function (sprints) {
-                        global.sprintIterations = sprints;
-                        Events.addIterationDropdownItems(sprints, "sprintStartSelect", "#sprintStart");
-                        Events.addIterationDropdownItems(sprints, "sprintEndSelect", "#sprintEnd");
+                        global.sprintIterations = sprints.sprintsArray;
+                        global.sprintIterationsPath = sprints.sprintsPathArray;
 
                         global.currentSprint - 2 >= 0 ? global.startSprint = global.currentSprint - 2 : global.startSprint = 0;
                         global.currentSprint + 2 < global.sprintIterations.length ? global.endSprint = global.currentSprint + 2 : global.endSprint = global.sprintIterations.length - 1;
+
+                        Events.addIterationDropdownItems(sprints, "sprintStartSelect", "sprintStart", global.sprintIterations[global.startSprint]);
+                        Events.addIterationDropdownItems(sprints, "sprintEndSelect", "sprintEnd", global.sprintIterations[global.endSprint]);
                         RenderElement.fetchItems(witClient, client, contracts, teamId.id);
                         Events.enableButton();
                     }).catch(function (error) {
@@ -165,11 +170,11 @@ window.addEventListener('load', function () {
                 }
                 else {
                     Events.disableButton();
-                    window.appInsights.trackEvent("Team tried accessing :- " + team)
+                    appInsights.trackEvent("Team tried accessing :- " + team)
                     document.getElementById("displayNotMessage").innerHTML = "This feature is not supported for selected team!"
                 }
             }).catch(function (error) {
-                window.appInsights.trackException({ "exception": "Failed to get ECS config", "innerException": error })
+                appInsights.trackException({ "exception": "Failed to get ECS config", "innerException": error })
                 Events.showErrorMessage()
             })
         });
@@ -186,7 +191,7 @@ window.addEventListener('load', function () {
         }
 
         async function httpGetToECS(team) {
-            var url = "https://b.config.skype.net/config/v1/CSE-Teams/1.0.0.0/INT-PLT-EIP-DependencyTracker?Environment=DependencyTracker"
+            var url = "https://s2s.config.skype.com/config/v1/CSE-Teams/1.0.0.0/BAP-INT-DependencyTracker?Environment=Production"
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open("GET", url);
@@ -198,11 +203,7 @@ window.addEventListener('load', function () {
     })
     // Button click and scroll events
     $("#mainTableContainer").scroll(function () {
-        for (key in dict) {
-            dict[key].forEach(element => {
-                element["line"].position();
-            })
-        }
+        Events.reRenderLines();
     });
 
     $("#fullSizeButton").on("click", function () {
@@ -210,13 +211,14 @@ window.addEventListener('load', function () {
         if (document.getElementById("teamGraph").style.display == "" || document.getElementById("teamGraph").style.display == "none") {
             document.getElementById("teamGraph").style.display = "block"
             document.getElementById("hideSection").style.display = "none"
-            $('#fullSizeButton').children().html("Dependency View")
+            $('#fullSizeButton').children().html("Show Graph")
         }
         else {
 
             document.getElementById("teamGraph").style.display = "none"
             document.getElementById("hideSection").style.display = "block"
-            $('#fullSizeButton').children().html("Summary view")
+            $('#fullSizeButton').children().html("Summary")
+            Events.reRenderLines();
         }
 
     });

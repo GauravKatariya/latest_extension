@@ -10,14 +10,13 @@ var RenderElement = {
     },
 
     loadTable(htmlTagId, workItemsWithDependency) {
-        
+
         var table = "<table class='ms-Table' id='mainTable'><thead><th><b>Team</b></th>";
-        for(var i = global.startSprint; i <= global.endSprint;i++)
-        {
-            table += "<th><b>"+global.sprintIterations[i]+"</b></th>";
+        for (var i = global.startSprint; i <= global.endSprint; i++) {
+            table += "<th><b>" + global.sprintIterations[i] + "</b></th>";
         }
         table += "</thead><tbody>"
-        
+
         table = table + this.renderTableItems(workItemsWithDependency) + "</tbody></table>"
         $(htmlTagId).append(table);
 
@@ -45,7 +44,7 @@ var RenderElement = {
     },
 
     renderIterationWorkItems(teamWorkItems) {
-        let iterations = global.sprintIterations.slice(global.startSprint , global.endSprint+1);
+        let iterations = global.sprintIterations.slice(global.startSprint, global.endSprint + 1);
         let iterationWorkItems = iterations.map(iteration => ({ iteration, workItems: teamWorkItems.filter(wi => wi.IterationPath.includes(iteration)) }));
         var cells = ""
 
@@ -88,17 +87,29 @@ var RenderElement = {
         return "<div id='" + id + "' class='board-tile-content-container' style='border-left: solid 5px " + colour + " '><div class='board-tile-content'><span style='display: inline-block;margin-right: 3px;'><div class='ms-TooltipHost host_931d1596 work-item-type-icon-wrapper'><i aria-label='User Story' class='work-item-type-icon bowtie-icon bowtie-symbol-task' style='color: " + colour + "'></i></div></span><div class='title-ellipsis'><div class='title-ellipsis'><a href='" + url + "' target='_blank'><span class='clickable-title' role='button'>" + title + "</span></a></div></div></div></div>"
     },
 
-    async fetchItems(witClient, client, Contracts,teamID) {
-        var areaPath = await DataExtract.getTeamAreaPath(teamID);
+    async fetchItems(witClient, client, Contracts, teamID) {
 
-        var workItemsobj = await this.getAllteamDependentItems(witClient, client, Contracts, areaPath);
-        var workItemsWithDummy = DataFilter.getWorkItemsWithDummy(workItemsobj, areaPath)
-
-        this.TeamLevelRender(workItemsWithDummy, areaPath);
+        try {
+            var areaPath = await DataExtract.getTeamAreaPath(teamID);
+            var workItemsobj = await this.getAllteamDependentItems(witClient, client, Contracts, areaPath)
+            if (workItemsobj == undefined) {
+                return;
+            }
+            var workItemsWithDummy = DataFilter.getWorkItemsWithDummy(workItemsobj, areaPath)
+            this.TeamLevelRender(workItemsWithDummy, areaPath);
+        } catch (error) {
+            appInsights.trackException(error)
+        }
     },
 
     async getAllteamDependentItems(witClient, client, Contracts, AreaPath) {
         var workItemsOfTeam = await DataExtract.getWorkItems(witClient, client, Contracts, AreaPath);
+
+        if (workItemsOfTeam == undefined) {
+            appInsights.trackEvent("No data for selected sprints for corresponding team. :- " + AreaPath)
+            return undefined;
+        }
+
         var workItemsOfTeamObj = DataFilter.transformData(workItemsOfTeam)
         var dependentWorkItem = [];
 
@@ -108,6 +119,8 @@ var RenderElement = {
         });
 
         var workItemsOfdependentTeam = await DataExtract.getWorkItemsWithID(dependentWorkItem);
+        if (workItemsOfdependentTeam == undefined)
+            return undefined;
         var workItemsOfdependentObj = DataFilter.transformData(workItemsOfdependentTeam);
 
         workItemsOfdependentObj.forEach(wi => {

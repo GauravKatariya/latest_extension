@@ -13,7 +13,7 @@ var DataExtract = {
         var iterationPathString = "(";
         var commaString = "";
         for (var i = global.startSprint; i <= global.endSprint; i++) {
-            iterationPathString = iterationPathString + commaString + "'" + commonIterationPath + sprintIterations[i] + "'";
+            iterationPathString = iterationPathString + commaString + "'" + sprintIterationsPath[i] + "'";
             commaString = ",";
         }
         iterationPathString += ") )";
@@ -55,26 +55,20 @@ var DataExtract = {
                 var client = WorkRestClient.getClient();
 
                 var sprintsArray = []
-                var fullIterationPath;
+                var sprintsPathArray = []
                 //query the area paths
                 client.getTeamIterations(teamContext).then((settings) => {
                     settings.forEach(element => {
                         if (element.attributes.timeFrame == "current" || element.attributes.timeFrame == 1)
                             global.currentSprint = sprintsArray.length;
-                        fullIterationPath = element.path;
+                        
+                        sprintsPathArray = sprintsPathArray.concat(element.path);
                         sprintsArray = sprintsArray.concat(element.name);
                     });
 
-                    var splitIterationPath = fullIterationPath.split("\\");
-                    fullIterationPath = ""
-                    for (var i = 0; i < splitIterationPath.length - 1; i++) {
-                        fullIterationPath += splitIterationPath[i] + "\\";
-                    }
-
-                    global.commonIterationPath = fullIterationPath;
-                    resolve(sprintsArray);
+                    resolve( { "sprintsArray" : sprintsArray , "sprintsPathArray" : sprintsPathArray });
                 }).catch(function (error) {
-                    window.appInsights.trackException({ "exception": "Failed to get team iterations of team :- " + teamId, "innerException": error })
+                    appInsights.trackException({ "exception": "Failed to get team iterations of team :- " + teamId, "innerException": error })
                     reject(error)
                 })
             })
@@ -89,9 +83,12 @@ var DataExtract = {
                 var workItems = await client.getWorkItems(queryResult.workItems.map(function (wi) { return wi.id; }), null, null, contracts.WorkItemExpand.Relations)
                 return workItems;
             }
+            else{
+                return undefined;
+            }
         }
         catch (error) {
-            window.appInsights.trackException({ "exception": "Failed to get work items of team :- " + areaPath, "innerException": error })
+            throw { "exception": "Failed to get work items of team :- " + areaPath, "innerException": error }
         }
     },
 
@@ -101,12 +98,12 @@ var DataExtract = {
             return workItems;
         }
         catch (error) {
-            window.appInsights.trackException({ "exception": "Failed to get workitems :- " + workItemsID, "innerException": error })
+            throw { "exception": "Failed to get workitems :- " + workItemsID, "innerException": error }
         }
     },
 
     async getTeamNames(client) {
-        var maxTeamCount = 50;
+        var maxTeamCount = 1000;
         var countAPIResponse = 1;
         var currentSkip = 0;
         var batchSize = 50;
@@ -132,8 +129,7 @@ var DataExtract = {
             return teamLists;
         }
         catch (error) {
-            window.appInsights.trackException({ "exception": "Failed to get Team names from vsts", "innerException": error })
-            return undefined;
+            throw { "exception": "Failed to get Team names from vsts", "innerException": error }
         }
     }
 }
