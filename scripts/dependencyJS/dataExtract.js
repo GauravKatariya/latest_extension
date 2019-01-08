@@ -26,8 +26,8 @@ var DataExtract = {
 
     //not being used anywhere 
     getTeamAreaPath(teamId) {
-        return new Promise((resolve, reject) => {
-            VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
+        return new Promise(function (resolve, reject){
+            VSS.require(["TFS/Work/RestClient"], function(WorkRestClient){
                 var teamContext = {
                     projectId: global.projectId,
                     teamId: teamId,
@@ -37,7 +37,7 @@ var DataExtract = {
                 var client = WorkRestClient.getClient();
 
                 //query the area paths
-                client.getTeamFieldValues(teamContext).then((settings) => {
+                client.getTeamFieldValues(teamContext).then(function (settings){
                     resolve(settings.defaultValue);
                 });
             });
@@ -45,8 +45,8 @@ var DataExtract = {
     },
 
     getTeamIterations(teamId) {
-        return new Promise((resolve, reject) => {
-            VSS.require(["TFS/Work/RestClient"], (WorkRestClient) => {
+        return new Promise(function(resolve, reject){
+            VSS.require(["TFS/Work/RestClient"], function(WorkRestClient){
                 var teamContext = {
                     projectId: global.projectId,
                     teamId: teamId,
@@ -57,7 +57,7 @@ var DataExtract = {
                 var sprintsArray = []
                 var sprintsPathArray = []
                 //query the area paths
-                client.getTeamIterations(teamContext).then((settings) => {
+                client.getTeamIterations(teamContext).then(function (settings){
                     settings.forEach(element => {
                         if (element.attributes.timeFrame == "current" || element.attributes.timeFrame == 1)
                             global.currentSprint = sprintsArray.length;
@@ -113,10 +113,15 @@ var DataExtract = {
             while (true) {
                 teams = await client.getTeams(global.projectId, batchSize, currentSkip)
                 // Check if data returned from API is empty
-                if (teams == undefined || teams.length == 0) {
+                if (teams == undefined) {
                     countAPIResponse = countAPIResponse + 1;
                     return;
                 }
+                if(teams.length == 0)
+                {
+                    return teamLists;
+                }
+                
                 teamLists = teamLists.concat(teams);
                 countAPIResponse = countAPIResponse + 1;
 

@@ -3,6 +3,7 @@ var DataFilter = require("../dependencyJS/dataFilter")
 var Line = require("../dependencyJS/line")
 var RenderElement = require("../dependencyJS/render")
 var SummaryView = require("../dependencyJS/summaryView")
+var Events = require("../dependencyJS/events")
 
 var RenderElement = {
     onlyUnique(value, index, self) {
@@ -107,10 +108,16 @@ var RenderElement = {
 
         if (workItemsOfTeam == undefined) {
             appInsights.trackEvent("No data for selected sprints for corresponding team. :- " + AreaPath)
+
+            Events.hideDependencyContainer();
+            Events.clearScreen();
+            Events.clearLines();
+            document.getElementById("displayNotMessage").innerHTML = "No Dependency marked within the selected sprints"
             return undefined;
         }
 
         var workItemsOfTeamObj = DataFilter.transformData(workItemsOfTeam)
+        workItemsOfTeamObj = DataFilter.getWorkItemsWithDependency(workItemsOfTeamObj)
         var dependentWorkItem = [];
 
         workItemsOfTeamObj.forEach(wi => {
@@ -129,7 +136,27 @@ var RenderElement = {
                 workItemsOfTeamObj = workItemsOfTeamObj.concat(wi);
             }
         });
-        return workItemsOfTeamObj;
+
+        var wiHavingDependenciesSprintWise = []
+        let iterations = global.sprintIterations.slice(global.startSprint, global.endSprint + 1);
+
+        //debugger
+        var flag;
+        workItemsOfTeamObj.forEach(wi => {
+            flag = true
+            for (var i = 0; i < iterations.length; i++) {
+                if (wi.IterationPath.includes(iterations[i])) {
+                    wiHavingDependenciesSprintWise = wiHavingDependenciesSprintWise.concat(wi);
+                    flag = false;
+                    break;
+                }
+            }
+
+            if (flag) {
+                global.skipList = global.skipList.concat(wi.Id);
+            }
+        });
+        return wiHavingDependenciesSprintWise;
     },
 
     TeamLevelRender(workItemsWithDummy, areaPath) {

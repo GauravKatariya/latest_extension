@@ -55,8 +55,8 @@ var Line = {
             dict[key2].push({ "id": key, "line": line })
             allLines.push(line);
         }
-        catch(err){
-            console.log(source + " failed");
+        catch (err) {
+            console.log(source + " , " + destination + " , " + sprint_wi + " , " + sprint_dwi + " , " + title_dwi + " , " + ": - failed");
         }
     },
     createLines(workItemsWithDependency, areaPath) {
@@ -66,40 +66,44 @@ var Line = {
             var sprint_wi;
             sprintPathArray.length == 0 ? sprint_wi = wi["IterationPath"] : sprint_wi = sprintPathArray[sprintPathArray.length - 1];
             sprint_wi = (sprint_wi).replace("-", "");
-            sprint_wi = parseInt(sprint_wi)
+            //sprint_wi = parseInt(sprint_wi)
 
             if (wi.DependentOn != undefined && wi.DependentOn.length > 0) {
                 wi.DependentOn.forEach(dwi => {
-                    var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
-                    var dwi_sprintPathArray = dwi_sprintPath.split("\\");
-                    var sprint_dwi;
-                    dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
-                    var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
-                    sprint_dwi = (sprint_dwi).replace("-", "");
-                    sprint_dwi = parseInt(sprint_dwi)
+                    if (global.skipList.find(x => x == dwi) == undefined) {
+                        var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
+                        var dwi_sprintPathArray = dwi_sprintPath.split("\\");
+                        var sprint_dwi;
+                        dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
+                        var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
+                        sprint_dwi = (sprint_dwi).replace("-", "");
+                        //sprint_dwi = parseInt(sprint_dwi)
 
-                    key1 = wi.Id
-                    key2 = dwi
-                    var source = document.getElementById(key1)
-                    var destination = document.getElementById(key2)
-                    this.drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi);
+                        key1 = wi.Id
+                        key2 = dwi
+                        var source = document.getElementById(key1)
+                        var destination = document.getElementById(key2)
+                        this.drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi);
+                    }
                 })
             }
             if (wi.DependentBy != undefined && wi.DependentBy.length > 0) {
                 wi.DependentBy.forEach(dwi => {
-                    var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
-                    var dwi_sprintPathArray = dwi_sprintPath.split("\\");
-                    var sprint_dwi;
-                    dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
-                    var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
-                    sprint_dwi = (sprint_dwi).replace("-", "");
-                    sprint_dwi = parseInt(sprint_dwi)
+                    if (global.skipList.find(x => x == dwi) == undefined) {
+                        var dwi_sprintPath = (workItemsWithDependency.filter(wis => wis.Id == dwi))[0]["IterationPath"];
+                        var dwi_sprintPathArray = dwi_sprintPath.split("\\");
+                        var sprint_dwi;
+                        dwi_sprintPathArray.length == 0 ? sprint_dwi = dwi_sprintPath : sprint_dwi = dwi_sprintPathArray[dwi_sprintPathArray.length - 1];
+                        var title_dwi = workItemsWithDependency.filter(wis => wis.Id == dwi)[0]["Title"];
+                        sprint_dwi = (sprint_dwi).replace("-", "");
+                        //sprint_dwi = parseInt(sprint_dwi)
 
-                    key1 = wi.Id
-                    key2 = dwi
-                    var destination = document.getElementById(key1)
-                    var source = document.getElementById(key2)
-                    this.drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi);
+                        key1 = wi.Id
+                        key2 = dwi
+                        var destination = document.getElementById(key1)
+                        var source = document.getElementById(key2)
+                        this.drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi);
+                    }
                 })
             }
 

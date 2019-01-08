@@ -19,6 +19,9 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js" type="text/javascript"></script>
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.6-rc.0/js/select2.min.js"></script>
+
 <script src='scripts/dragula.js'></script>
 <link href='css/dragula.css' rel='stylesheet' type='text/css' />
 <script src="scripts/dependencyJS/bundle.js"></script>
@@ -39,27 +42,26 @@
     <div class="hub-view">
         <div class="hub-content">
             <div class="dependency-tracker-content">
+                <div class="dependency-viewer-banner">
+                    <h2 id="bannerText">
+                        Dependency Viewer helps track dependencies across multiple feature teams.
+                    </h2>
+                </div>
                 <div class="dependency-tracker-content-header">
-                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px;width:300px" id="teamDropdown">
-                        <select class="ms-Dropdown-select" id="teamDropdownSelect">
-                        </select>
-                    </div>
-                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px" id="sprintStart">
-                        <select class="ms-Dropdown-select" id="sprintStartSelect">
-                        </select>
-                    </div>
-                    <div class="ms-Dropdown" tabindex="0" style="margin-top:10px;margin-left:10px" id="sprintEnd">
-                        <select class="ms-Dropdown-select" id="sprintEndSelect">
-                        </select>
-                    </div>
-                    <button class="ms-Button" id="goButton" style="margin-left: 10px;margin-top: 10px;display:none">
+
+                    <select id="teamsSelectionDropDown" style="margin-right:10px;width:200px" disabled></select>
+                    <select id="sprintStartDropDown" style="margin-right:10px;width:100px" disabled></select>
+                    <select id="sprintEndDropDown" style="width:100px" disabled></select>
+
+                    <button class="ms-Button" id="goButton" style="margin-left: 10px;display:none">
                         <span class="ms-Button-label">Go</span>
                     </button>
-                    <button class="ms-Button" id="fullSizeButton" style="margin-left: 10px;margin-top: 10px;display:none">
+                    <button class="ms-Button" id="fullSizeButton" style="margin-left: 10px;display:none">
                         <span class="ms-Button-label">Summary</span>
                     </button>
                 </div>
-                <div class="dependency-content">
+                <div class="dependency-content" id="dependencyContainer">
+                    <h1 id="displayNotMessage">"Please wait ...!"</h1>
                     <div class="dependency-graph-container" id="hideSection">
                         <div class="graph-wrapper" id="mainTableContainer">
                         </div>
@@ -67,7 +69,9 @@
                     <div class="dependency-grid" id="teamGraph" style="display:none">
                     </div>
                 </div>
-                <h2 id="displayNotMessage"></h2>
+                <!-- <div id="messageContainer">
+                    <h1 id="displayNotMessage">"Please wait ...!"</h1>
+                </div> -->
             </div>
         </div>
 </body>

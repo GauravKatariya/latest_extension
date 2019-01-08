@@ -7,10 +7,21 @@ var Events = {
             })
         }
     },
+    showDependencyContainer()
+    {
+        //$("#dependencyContainer").show();
+        $("#displayNotMessage").hide();
+    },
+    hideDependencyContainer()
+    {
+        //$("#dependencyContainer").hide();
+        $("#displayNotMessage").show();
+    },
     showErrorMessage() {
-        Events.clearScreen();
-        Events.clearLines();
-        Events.reInitializeSprintDropdown();
+        this.hideDependencyContainer();
+        this.clearScreen();
+        this.clearLines();
+        this.disableSprintDropdown();
         document.getElementById("displayNotMessage").innerHTML = "Something went wrong!!"
     },
     clearScreen() {
@@ -26,15 +37,10 @@ var Events = {
         document.getElementById("fullSizeButton").style.display = "none"
         document.getElementById("goButton").style.display = "none"
     },
-    reInitializeSprintDropdown() {
-        $('#sprintStart span').remove('.ms-Dropdown-title');
-        $("#sprintStart ul").remove(".ms-Dropdown-items");
-        document.getElementById("sprintStartSelect").innerHTML = "";
-
-        document.getElementById("sprintEndSelect").innerHTML = "";
-        $('#sprintEnd span').remove('.ms-Dropdown-title');
-        $("#sprintEnd ul").remove(".ms-Dropdown-items");
-
+    disableSprintDropdown()
+    {
+        $('#sprintStartDropDown').prop("disabled", true);
+        $('#sprintEndDropDown').prop("disabled", true);
     },
     clearLines() {
         for (key in dict) {
@@ -57,41 +63,43 @@ var Events = {
             $('#fullSizeButton').children().html("Summary")
         }
     },
-    addDropdownItems(list, htmlId1, htmlId2) {
+    addDropdownItems(list, htmlId) {
         global.teamsList = list;
-
-        var x = document.getElementById(htmlId1);
-            var option = document.createElement("option");
-            option.text = "Select Team";
-            option.value = "Select Team";
-            x.add(option);
-
+        var htmlId1 = "#" + htmlId
+        
+        var newOption = new Option("","", false, false);
+        $(htmlId1).append(newOption).trigger('change');
+        
         list.forEach(element => {
-            var x = document.getElementById(htmlId1);
-            var option = document.createElement("option");
-            option.text = element.name;
-            option.value = element.name;
-            x.add(option);
+
+            var data = {
+                id: element.name,
+                text: element.name
+            };
+            
+            var newOption = new Option(data.text, data.id, false, false);
+            $(htmlId1).append(newOption).trigger('change');
         });
-        var DropdownHTMLElements = document.querySelectorAll(htmlId2);
-        for (var i = 0; i < DropdownHTMLElements.length; ++i) {
-            var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
-        }
+
+        $(htmlId1).prop("disabled", false);
     },
-    addIterationDropdownItems(list, htmlId1, html2 , sprintSelected) {
+    addIterationDropdownItems(list, htmlId , selectedSprint) {
+        var x = document.getElementById(htmlId);
+        x.innerHTML = "";
+        var htmlId1 = "#" + htmlId
         list.forEach(element => {
-            var x = document.getElementById(htmlId1);
-            var option = document.createElement("option");
-            option.text = element;
-            option.value = element;
-            x.add(option);
+            var data = {
+                id: element,
+                text: element
+            };
+            
+            if(element == selectedSprint)
+                var newOption = new Option(data.text, data.id, false, true);
+            else
+                var newOption = new Option(data.text, data.id, false, false);
+            $(htmlId1).append(newOption).trigger('change');
         });
-        var DropdownHTMLElements = document.querySelectorAll("#"+html2);
-        for (var i = 0; i < DropdownHTMLElements.length; ++i) {
-            var Dropdown = new fabric['Dropdown'](DropdownHTMLElements[i]);
-        }
-
-        var targetDiv = document.getElementById(html2).getElementsByClassName("ms-Dropdown-title")[0].innerText=sprintSelected
+        $(htmlId1).prop("disabled", false);
     }
 }
 

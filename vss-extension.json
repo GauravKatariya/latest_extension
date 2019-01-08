@@ -1,19 +1,16 @@
 {
     "manifestVersion": 1.0,
-    "id": "samples-ui",
-    "version": "1.0.676",
-    "name": "UI Contrls (Sample)",
-    "description": "Explore different UI contr7ls, including menus, toolbars, custom controls, and more.",
-    "publisher": "fabrikam",
+    "id": "DependencyViewer",
+    "version": "1.0.11",
+    "name": "Dependency Viewer(Preview)",
+    "description": "This tool helps track your team dependencies across feature teams.",
+    "publisher": "BapTools",
     "public": false,
     "icons": {
         "default": "images/fabrikam-logo.png"
     },
     "categories": [
-        "Build and release",
-        "Code",
-        "Plan and track",
-        "Test"
+        "Azure Boards"
     ],
     "targets": [
         {
@@ -56,7 +53,7 @@
                 "ms.vss-work-web.work-hub-group"
             ],
             "properties": {
-                "name": "Dependency-Tracker",
+                "name": "Dependency Viewer(Preview)",
                 "order": 100,
                 "uri": "index.html"
             }
