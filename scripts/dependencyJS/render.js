@@ -27,14 +27,41 @@ var RenderElement = {
     },
 
     renderTableItems(workItemsWithDependency) {
-        var teams = workItemsWithDependency.map(function (wid) {
-            var areaPatharray = wid["AreaPath"].split("\\")
+        var teams = [];
+        workItemsWithDependency.map(function (wid) {
             var teamName;
+            var areaPatharray = wid["AreaPath"].split("\\")
             areaPatharray.length == 0 ? teamName = wid["AreaPath"] : teamName = areaPatharray[areaPatharray.length - 1];
-            return teamName;
+            //Create a json for the team name and Area path
+            var teamAreas = {
+                "teamName": teamName,
+                "areaPath": wid["AreaPath"]
+            };
+
+            var teamNameExist = 0;
+            if (teams.length > 0) {
+                teams.forEach(team => {
+                    if (team.teamName == teamAreas.teamName) {
+                        teamNameExist = 1;
+                    }
+                });
+            }
+
+            if (teamNameExist == 0) {
+                teams.push(teamAreas);
+            }
         })
-        teams = teams.filter(this.onlyUnique)
-        var teamWorkItems = teams.map(team => ({ "team": team, "workItems": workItemsWithDependency.filter(wi => wi.AreaPath.includes(team)) }));
+
+        //teams = teams.filter(this.onlyUnique)
+        var teamWorkItems = teams.map(team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(function (wi)
+            {
+                var teamN;
+                var areaPatharray = wi["AreaPath"].split("\\")
+                areaPatharray.length == 0 ? teamN = wi["AreaPath"] : teamN = areaPatharray[areaPatharray.length - 1];
+                
+                return teamN == team.teamName   
+            }
+        ) }));
         var rows = ""
 
         teamWorkItems.forEach(teamWorkItem => {
@@ -91,19 +118,40 @@ var RenderElement = {
     async fetchItems(witClient, client, Contracts, teamID) {
 
         try {
-            var areaPath = await DataExtract.getTeamAreaPath(teamID);
-            var workItemsobj = await this.getAllteamDependentItems(witClient, client, Contracts, areaPath)
-            if (workItemsobj == undefined) {
+            var areaPaths = []
+
+            for (var i = 0; i < teamID.length; i++) {
+                var areaPath = await DataExtract.getTeamAreaPath(teamID[i]);
+                areaPaths.push(areaPath)
+            }
+
+            var workItems = await this.getTeamWorkItems(witClient, client, Contracts, areaPaths);
+
+            if (workItems == undefined) {
                 return;
             }
-            var workItemsWithDummy = DataFilter.getWorkItemsWithDummy(workItemsobj, areaPath)
-            this.TeamLevelRender(workItemsWithDummy, areaPath);
+
+            var workItemsOfTeamObj = DataFilter.transformData(workItems)
+            var workItemsobj = await this.getAllteamDependentItems(workItemsOfTeamObj)
+            var workItemsWithDummy = DataFilter.getWorkItemsWithDummy(workItemsOfTeamObj, workItemsobj, areaPaths);
+
+            if (workItemsWithDummy == undefined || workItemsWithDummy.length == 0) {
+                appInsights.trackEvent("No data for selected sprints for corresponding team. :- " + areaPaths)
+                Events.hideDependencyContainer();
+                Events.clearScreen();
+                Events.clearLines();
+                document.getElementById("displayNotMessage").innerHTML = "No Dependency marked within the selected sprints"
+                return undefined;
+            }
+            else {
+                this.TeamLevelRender(workItemsWithDummy, areaPaths);
+            }
         } catch (error) {
             appInsights.trackException(error)
         }
     },
 
-    async getAllteamDependentItems(witClient, client, Contracts, AreaPath) {
+    async getTeamWorkItems(witClient, client, Contracts, AreaPath) {
         var workItemsOfTeam = await DataExtract.getWorkItems(witClient, client, Contracts, AreaPath);
 
         if (workItemsOfTeam == undefined) {
@@ -115,34 +163,41 @@ var RenderElement = {
             document.getElementById("displayNotMessage").innerHTML = "No Dependency marked within the selected sprints"
             return undefined;
         }
+        else
+            return workItemsOfTeam;
+    },
 
-        var workItemsOfTeamObj = DataFilter.transformData(workItemsOfTeam)
-        workItemsOfTeamObj = DataFilter.getWorkItemsWithDependency(workItemsOfTeamObj)
+    async getAllteamDependentItems(workItemsOfTeamObj) {
+        var workItemsOfTeam = DataFilter.getWorkItemsWithDependency(workItemsOfTeamObj)
         var dependentWorkItem = [];
-
-        workItemsOfTeamObj.forEach(wi => {
+        var workItemsOfdependentTeam = undefined;
+        workItemsOfTeam.forEach(wi => {
             if (wi.DependentOn != undefined && wi.DependentOn.length != 0) { dependentWorkItem = dependentWorkItem.concat(wi.DependentOn); }
             if (wi.DependentBy != undefined && wi.DependentBy.length != 0) { dependentWorkItem = dependentWorkItem.concat(wi.DependentBy); }
         });
 
-        var workItemsOfdependentTeam = await DataExtract.getWorkItemsWithID(dependentWorkItem);
+        if (dependentWorkItem.length != 0) {
+            workItemsOfdependentTeam = await DataExtract.getWorkItemsWithID(dependentWorkItem);
+        }
+
         if (workItemsOfdependentTeam == undefined)
             return undefined;
-        var workItemsOfdependentObj = DataFilter.transformData(workItemsOfdependentTeam);
-
-        workItemsOfdependentObj.forEach(wi => {
-            var temp = workItemsOfTeamObj.find(x => x.Id == wi.Id);
-            if (temp == undefined) {
-                workItemsOfTeamObj = workItemsOfTeamObj.concat(wi);
-            }
-        });
+        else {
+            var workItemsOfdependentObj = DataFilter.transformData(workItemsOfdependentTeam);
+            workItemsOfdependentObj.forEach(wi => {
+                var temp = workItemsOfTeam.find(x => x.Id == wi.Id);
+                if (temp == undefined) {
+                    workItemsOfTeam = workItemsOfTeam.concat(wi);
+                }
+            });
+        }
 
         var wiHavingDependenciesSprintWise = []
         let iterations = global.sprintIterations.slice(global.startSprint, global.endSprint + 1);
 
         //debugger
         var flag;
-        workItemsOfTeamObj.forEach(wi => {
+        workItemsOfTeam.forEach(wi => {
             flag = true
             for (var i = 0; i < iterations.length; i++) {
                 if (wi.IterationPath.includes(iterations[i])) {
@@ -153,7 +208,9 @@ var RenderElement = {
             }
 
             if (flag) {
-                global.skipList = global.skipList.concat(wi.Id);
+                if (global.skipList.indexOf(wi.Id) == -1) {
+                    global.skipList = global.skipList.concat(wi.Id);
+                }
             }
         });
         return wiHavingDependenciesSprintWise;

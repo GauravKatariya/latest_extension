@@ -60,7 +60,21 @@ var Line = {
         }
     },
     createLines(workItemsWithDependency, areaPath) {
-        var workItemsWithDependencyteamwise = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath)
+        var workItemsWithDependencyteamwise = [];
+        for (var index = 0; index < areaPath.length; index++)
+        {
+           var workItems = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath[index]);
+           if (workItems != undefined && workItems.length > 0)
+           {
+               workItems.forEach(element => workItemsWithDependencyteamwise.push(element));
+           }
+        }  
+
+        if (workItemsWithDependencyteamwise ==  undefined || workItemsWithDependency.length == 0)
+        {
+            return "";
+        }        
+        
         workItemsWithDependencyteamwise.forEach(wi => {
             var sprintPathArray = wi["IterationPath"].split("\\")
             var sprint_wi;

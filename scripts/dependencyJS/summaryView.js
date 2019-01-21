@@ -12,7 +12,20 @@ var SummaryView = {
     createConsumingTable(workItemsWithDependency, areaPath) {
         var heading = "<hr><h3>Consuming Dependencies</h3><hr>"
         var tableString = "<table class='summaryTable'><thead><th>Work Item</th><th>Producing Teams</th></thead><tbody>";
-        var workItemsWithDependencyteamwise = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath)
+        var workItemsWithDependencyteamwise = [];
+        for (var index = 0; index < areaPath.length; index++)
+        {
+           var workItems = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath[index]);
+           if (workItems != undefined && workItems.length > 0)
+           {
+               workItems.forEach(element => workItemsWithDependencyteamwise.push(element));
+           }
+        }
+
+        if (workItemsWithDependencyteamwise ==  undefined || workItemsWithDependency.length == 0)
+        {
+            return "";
+        }
 
         workItemsWithDependencyteamwise.forEach(element => {
             if (element.DependentOn != undefined && element.DependentOn.length != 0) {
@@ -44,8 +57,20 @@ var SummaryView = {
     createProducingTable(workItemsWithDependency, areaPath) {
         var heading = "<hr><h3>Producing Dependencies</h3><hr>"
         var tableString = "<table class='summaryTable'><thead><th>Work Item</th><th>Consuming Teams</th></thead><tbody>";
-        var workItemsWithDependencyteamwise = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath)
-
+        var workItemsWithDependencyteamwise = [];
+        for (var index = 0; index < areaPath.length; index++)
+        {
+           var workItems = DataFilter.getWorkItemsWithDependencyTeamwise(workItemsWithDependency, areaPath[index]);
+           if (workItems != undefined && workItems.length > 0)
+           {
+               workItems.forEach(element => workItemsWithDependencyteamwise.push(element));
+           }
+        }       
+        if (workItemsWithDependencyteamwise ==  undefined || workItemsWithDependency.length == 0)
+        {
+            return "";
+        }
+        
         workItemsWithDependencyteamwise.forEach(element => {
             if (element.DependentBy != undefined && element.DependentBy.length != 0) {
                 tableString = tableString + "<tr>"
