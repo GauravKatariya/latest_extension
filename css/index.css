@@ -202,3 +202,8 @@ height: 40px;
     font-weight: 600 !important;
     font-size: 14px !important;
 }
+
+.dependency-viewer-banner{
+    background-color:white;
+    z-index:99999;
+}

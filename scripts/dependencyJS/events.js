@@ -43,18 +43,15 @@ var Events = {
         $('#sprintEndDropDown').prop("disabled", true);
     },
     clearLines() {
-        for (key in dict) {
-            dict[key].forEach(element => {
-                var key2 = parseInt(element.id.split("-")[1])
-                Line.removeLine(parseInt(key), key2);
-            })
-        }
+        global.dict = {}
+        global.allLines.forEach(line => Line.removeLineObject(line))
+        global.allLines = []
     },
     toggleGraphandSummaryView() {
         if (document.getElementById("teamGraph").style.display == "" || document.getElementById("teamGraph").style.display == "none") {
             document.getElementById("teamGraph").style.display = "block"
             document.getElementById("hideSection").style.display = "none"
-            $('#fullSizeButton').children().html("Show Graph")
+            $('#fullSizeButton').children().html("Dependency View")
         }
         else {
 

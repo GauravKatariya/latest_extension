@@ -3,6 +3,7 @@ var DataFilter = {
         allWI = allWI.map(wi => ({
             "Title": wi.fields["System.Title"],
             "Id": wi.id,
+            "State": wi.fields["System.State"],
             "AreaPath": wi.fields["System.AreaPath"],
             "IterationPath": wi.fields["System.IterationPath"],
             "DependentOn": wi.relations != undefined ? wi.relations.filter(relation => relation.rel.includes("Dependency-Reverse")).map(item => parseInt(item.url.replace(global.vstsHostURL + "_apis/wit/workItems/", ""))) : undefined,
@@ -13,16 +14,8 @@ var DataFilter = {
         return allWI
     },
 
-    getWorkItemsWithDummy(allWI, dependentWorkItemsList, areaPaths) {
-
-        var wiDependenciesInTitle = []
-        areaPaths.forEach(areaPath => {
-            var dummyItemsList = allWI.filter(wi => wi.Title.includes("[Dependency]") && wi.AreaPath.includes(areaPath))
-            dummyItemsList.forEach(item => {
-                wiDependenciesInTitle.push(item)
-            });
-        });
-        
+    getWorkItemsWithDummy(allWI, dependentWorkItemsList, areaPath) {
+        var wiDependenciesInTitle = allWI.filter(wi => wi.Title.includes("[Dependency]") && wi.AreaPath.includes(areaPath))
         var itemsToBeProcessed = [];
         if (dependentWorkItemsList != undefined && dependentWorkItemsList.length != 0)
         {
@@ -30,11 +23,13 @@ var DataFilter = {
         }
         
         wiDependenciesInTitle.forEach(element => {
+            var teamAreaPath
+            (element.Title.split("]").length) < 3 ? teamAreaPath = "Unknown Team" : teamAreaPath =((element.Title.split("]"))[1]).substring(1)
             itemsToBeProcessed.push(
                 {
                     "Title": "[Waiting to create work item]",
                     "Id": element.Id + "0",
-                    "AreaPath": "Dummy_Area_path\\" + ((element.Title.split("]"))[1]).substring(1),
+                    "AreaPath": "Dummy_Area_path\\" + teamAreaPath,
                     "IterationPath": "Dummy_iteration_path\\" + global.sprintIterations[global.startSprint],
                     "DependentOn": [],
                     "DependentBy": [parseInt(element.Id)],
@@ -60,7 +55,7 @@ var DataFilter = {
     },
 
     getWorkItemsWithDependencyTeamwise(allWI, areaPath) {
-        var wiHavingDependencies = allWI.filter(wi => wi.AreaPath.includes(areaPath) && ((wi.DependentBy != undefined && wi.DependentBy.length != 0) || (wi.DependentOn != undefined && wi.DependentOn.length != 0)));
+        var wiHavingDependencies = allWI.filter(wi => (wi.AreaPath == areaPath) && ((wi.DependentBy != undefined && wi.DependentBy.length != 0) || (wi.DependentOn != undefined && wi.DependentOn.length != 0)));
         var wiHavingDependenciesSprintWise = []
         let iterations = global.sprintIterations.slice(global.startSprint, global.endSprint + 1);
 

@@ -48,7 +48,7 @@ var Line = {
             }
 
             line = new LeaderLine(source, destination,
-                { startPlug: 'disc', color: colorCode });
+                { startPlug: 'disc', color: colorCode , size : 3});
             var key = key1 + "-" + key2
             dict[key1].push({ "id": key, "line": line })
             key = key2 + "-" + key1
@@ -116,7 +116,7 @@ var Line = {
                         key2 = dwi
                         var destination = document.getElementById(key1)
                         var source = document.getElementById(key2)
-                        this.drawLine(source, destination, sprint_wi, sprint_dwi, title_dwi);
+                        this.drawLine(source, destination, sprint_dwi, sprint_wi, title_dwi);
                     }
                 })
             }

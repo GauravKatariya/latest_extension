@@ -1,7 +1,7 @@
 {
     "manifestVersion": 1.0,
     "id": "DependencyViewer",
-    "version": "1.0.11",
+    "version": "1.0.95",
     "name": "Dependency Viewer(Preview)",
     "description": "This tool helps track your team dependencies across feature teams.",
     "publisher": "BapTools",
