@@ -257,7 +257,7 @@ window.addEventListener('load', function () {
 
     });
 
-    function goClickButton()
+    async function goClickButton()
     {
         event.stopImmediatePropagation();
         Events.clearScreen();
@@ -276,13 +276,20 @@ window.addEventListener('load', function () {
         }
         
         Events.showDependencyContainer();
-        RenderElement.fetchItems(witClient, client, contracts, global.selectedTeamId);
+        await RenderElement.fetchItems(witClient, client, contracts, global.selectedTeamId);
     }
 
-    $("#goButton").on("click", function (event) {
-        goClickButton();
-    });
-    $("#goButton").dblclick(function(){
-        goClickButton();
+    var notdisableClick = true;
+
+    $("#goButton").on("click", async function () {
+        
+        if(notdisableClick)
+        {
+            Events.disableSprintDropdown();
+            notdisableClick = !notdisableClick;
+            await goClickButton();
+            Events.enableSprintDropdown();
+            notdisableClick = !notdisableClick;
+        }
     });
 });

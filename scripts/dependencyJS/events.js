@@ -42,6 +42,11 @@ var Events = {
         $('#sprintStartDropDown').prop("disabled", true);
         $('#sprintEndDropDown').prop("disabled", true);
     },
+    enableSprintDropdown()
+    {
+        $('#sprintStartDropDown').prop("disabled", false);
+        $('#sprintEndDropDown').prop("disabled", false);
+    },
     clearLines() {
         global.dict = {}
         global.allLines.forEach(line => Line.removeLineObject(line))

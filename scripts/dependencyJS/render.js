@@ -38,8 +38,6 @@ var RenderElement = {
                 "areaPath": wid["AreaPath"]
             };                        
 
-            //var teamNameExist = 0;
-
             var isTeamExist = teams.find(team => team.teamName === teamAreas.teamName);
             if(isTeamExist == undefined)
             {
@@ -54,25 +52,8 @@ var RenderElement = {
                     isTeamExist.areaPaths.push(teamAreas.areaPath);
                 }
             }
-
-            // if (teams.length > 0)
-            // {
-            //     teams.forEach(team => {
-            //             if (team.teamName == teamAreas.teamName && team.areaPath == teamAreas.areaPath)            
-            //             {
-            //                 teamNameExist = 1;
-            //             }
-            //    });
-            // }
-            
-            // if (teamNameExist == 0)
-            // {
-            //       teams.push(teamAreas);                
-            // }
         })
 
-        //teams = teams.filter(this.onlyUnique)
-        //var teamWorkItems = teams.map(team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(wi => team.areaPaths.include(wi.AreaPath) == team.areaPath) }));
         var teamWorkItems = teams.map( team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(wi=> team.areaPaths.find(areaPath => areaPath === wi.AreaPath ))}) );
         
         var rows = ""
