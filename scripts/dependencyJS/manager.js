@@ -257,9 +257,12 @@ window.addEventListener('load', function () {
 
     });
 
-    $("#goButton").on("click", function () {
+    function goClickButton()
+    {
+        event.stopImmediatePropagation();
         Events.clearScreen();
         Events.clearLines();
+        global.skipList = [];
         global.startSprint = global.sprintIterations.indexOf($('#sprintStartDropDown').val())
         global.endSprint = global.sprintIterations.indexOf($('#sprintEndDropDown').val())
 
@@ -271,9 +274,15 @@ window.addEventListener('load', function () {
             document.getElementById("displayNotMessage").innerHTML = "Sprint end should be later than sprint start"
             return;
         }
-
+        
         Events.showDependencyContainer();
         RenderElement.fetchItems(witClient, client, contracts, global.selectedTeamId);
-    });
+    }
 
+    $("#goButton").on("click", function (event) {
+        goClickButton();
+    });
+    $("#goButton").dblclick(function(){
+        goClickButton();
+    });
 });

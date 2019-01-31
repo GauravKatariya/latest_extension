@@ -27,7 +27,7 @@ var RenderElement = {
     },
 
     renderTableItems(workItemsWithDependency) {
-        var teams=[];
+        var teams = []; // [{"teamName": "team1" , "areaPaths" :[] }]
         workItemsWithDependency.map(function (wid) {
             var teamName;
             var areaPatharray = wid["AreaPath"].split("\\")
@@ -38,25 +38,43 @@ var RenderElement = {
                 "areaPath": wid["AreaPath"]
             };                        
 
-            var teamNameExist = 0;
-            if (teams.length > 0)
+            //var teamNameExist = 0;
+
+            var isTeamExist = teams.find(team => team.teamName === teamAreas.teamName);
+            if(isTeamExist == undefined)
             {
-                teams.forEach(team => {
-                        if (team.teamName == teamAreas.teamName)            
-                        {
-                            teamNameExist = 1;
-                        }
-               });
+                teams.push({"teamName" : teamAreas.teamName , "areaPaths" : [teamAreas.areaPath]});
             }
+            else
+            {
+                var isAreaPathExist = isTeamExist.areaPaths.find(areaPath => areaPath === teamAreas.areaPath)
+
+                if(isAreaPathExist == undefined)
+                {
+                    isTeamExist.areaPaths.push(teamAreas.areaPath);
+                }
+            }
+
+            // if (teams.length > 0)
+            // {
+            //     teams.forEach(team => {
+            //             if (team.teamName == teamAreas.teamName && team.areaPath == teamAreas.areaPath)            
+            //             {
+            //                 teamNameExist = 1;
+            //             }
+            //    });
+            // }
             
-            if (teamNameExist == 0)
-            {
-                  teams.push(teamAreas);                
-            }
+            // if (teamNameExist == 0)
+            // {
+            //       teams.push(teamAreas);                
+            // }
         })
 
         //teams = teams.filter(this.onlyUnique)
-        var teamWorkItems = teams.map(team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(wi => wi.AreaPath == team.areaPath) }));
+        //var teamWorkItems = teams.map(team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(wi => team.areaPaths.include(wi.AreaPath) == team.areaPath) }));
+        var teamWorkItems = teams.map( team => ({ "team": team.teamName, "workItems": workItemsWithDependency.filter(wi=> team.areaPaths.find(areaPath => areaPath === wi.AreaPath ))}) );
+        
         var rows = ""
 
         teamWorkItems.forEach(teamWorkItem => {
